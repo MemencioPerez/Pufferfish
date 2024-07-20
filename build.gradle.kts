@@ -1,34 +1,45 @@
-import io.papermc.paperweight.util.constants.PAPERCLIP_CONFIG
-
 plugins {
     java
-    id("com.github.johnrengelman.shadow") version "8.1.1" apply false
-    id("io.papermc.paperweight.patcher") version "1.5.15"
+    `maven-publish`
+    id("io.papermc.paperweight.patcher") version "1.7.1"
 }
+
+val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
 
 repositories {
     mavenCentral()
-    maven("https://papermc.io/repo/repository/maven-public/") {
-        content { onlyForConfigurations(PAPERCLIP_CONFIG) }
+    maven(paperMavenPublicUrl) {
+        content { onlyForConfigurations(configurations.paperclip.name) }
     }
 }
 
 dependencies {
-    remapper("net.fabricmc:tiny-remapper:0.10.1:fat")
+    remapper("net.fabricmc:tiny-remapper:0.10.2:fat")
     decompiler("org.vineflower:vineflower:1.10.1")
     paperclip("io.papermc:paperclip:3.0.3")
 }
 
-subprojects {
+allprojects {
     apply(plugin = "java")
+    apply(plugin = "maven-publish")
 
     java {
-        toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
     }
+}
 
-    tasks.withType<JavaCompile>().configureEach {
-        options.encoding = "UTF-8"
-        options.release.set(17)
+subprojects {
+    tasks.withType<JavaCompile> {
+        options.encoding = Charsets.UTF_8.name()
+        options.release = 21
+    }
+    tasks.withType<Javadoc> {
+        options.encoding = Charsets.UTF_8.name()
+    }
+    tasks.withType<ProcessResources> {
+        filteringCharset = Charsets.UTF_8.name()
     }
 
     repositories {
@@ -47,8 +58,8 @@ subprojects {
 paperweight {
     serverProject.set(project(":pufferfish-server"))
 
-    remapRepo.set("https://maven.fabricmc.net/")
-    decompileRepo.set("https://files.minecraftforge.net/maven/")
+    remapRepo.set(paperMavenPublicUrl)
+    decompileRepo.set(paperMavenPublicUrl)
 
     usePaperUpstream(providers.gradleProperty("paperRef")) {
         withPaperPatcher {
